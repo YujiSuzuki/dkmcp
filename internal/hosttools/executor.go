@@ -107,6 +107,14 @@ func runWithTimeout(cmdPath string, args []string, workDir string, timeout time.
 	if workDir != "" {
 		cmd.Dir = workDir
 	}
+	// WaitDelay ensures I/O goroutines are cancelled even if a grandchild process
+	// inherits stdout/stderr pipes and keeps them open after the main process is
+	// killed. Without this, cmd.Run() would block forever when bash spawns sleep.
+	//
+	// WaitDelayにより、孫プロセスがパイプを保持していても I/O ゴルーチンが
+	// キャンセルされます。これがないと bash が sleep を起動した際に
+	// cmd.Run() が永久にブロックします。
+	cmd.WaitDelay = 5 * time.Second
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr

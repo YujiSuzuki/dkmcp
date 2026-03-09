@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"time"
 
 	"github.com/YujiSuzuki/dkmcp/internal/client"
 	"github.com/YujiSuzuki/dkmcp/internal/config"
@@ -187,6 +188,12 @@ func NewHTTPBackendWithSuffix(url string, suffix string) (*HTTPBackend, error) {
 	// クライアントサフィックスが指定されている場合は設定
 	if suffix != "" {
 		c.SetClientSuffix(suffix)
+	}
+
+	// Apply configured timeout when explicitly set or overridden via env var (default is 30s).
+	// 明示的に設定またはenv varで上書きされた場合にタイムアウトを適用します（デフォルトは30秒）。
+	if clientTimeout > 0 {
+		c.SetTimeout(time.Duration(clientTimeout) * time.Second)
 	}
 
 	// Perform health check to verify server is running.

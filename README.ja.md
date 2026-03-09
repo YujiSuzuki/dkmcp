@@ -288,7 +288,24 @@ dkmcp client list --url http://localhost:8080
 # または環境変数を使用
 export DOCKMCP_SERVER_URL=http://host.docker.internal:8080
 dkmcp client list
+
+# タイムアウトを指定（秒）
+dkmcp client --timeout 120 exec securenote-api "npm run build"
+
+# または環境変数を使用
+export DOCKMCP_TIMEOUT=120
+dkmcp client exec securenote-api "npm run build"
 ```
+
+**クライアントコマンド 共通フラグ:**
+
+| フラグ | 環境変数 | デフォルト | 説明 |
+|--------|---------|-----------|------|
+| `--url` | `DOCKMCP_SERVER_URL` | `http://host.docker.internal:8080` | DockMCPサーバーのURL |
+| `--client-suffix` / `-s` | `DOCKMCP_CLIENT_SUFFIX` | (なし) | クライアント名に追加するサフィックス |
+| `--timeout` | `DOCKMCP_TIMEOUT` | `30` | HTTPリクエストおよびツール呼び出しレスポンスのタイムアウト（秒） |
+
+> **タイムアウトについて:** `--timeout` はHTTPリクエスト送信の待機時間とSSE経由のレスポンス受信の待機時間の両方に適用されます。`npm run build` のように時間のかかるコマンドを実行する場合は、適切に延長してください。SSE接続自体（サーバーとのセッション維持）にはタイムアウトは適用されません。
 
 **どちらを使うべきか:**
 - **ホストOSコマンド**: Dockerソケットへの直接アクセスがある場合

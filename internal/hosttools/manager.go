@@ -51,6 +51,12 @@ func (m *Manager) IsSecureMode() bool {
 	return m.config != nil && m.config.IsSecureMode()
 }
 
+// Config returns the host tools configuration.
+// Configはホストツールの設定を返します。
+func (m *Manager) Config() *config.HostToolsConfig {
+	return m.config
+}
+
 // SetDevMode enables development mode.
 // In dev mode, staging directories are included with highest priority,
 // allowing tools under development to be tested without approval.

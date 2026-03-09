@@ -441,6 +441,16 @@ func (s *Server) handleSSE(w http.ResponseWriter, r *http.Request) {
 		f.Flush()
 	}
 
+	// Heartbeat ticker to keep the SSE connection alive during idle periods.
+	// Without periodic data, clients (e.g. VSCode extension) may close the connection on idle timeout.
+	// SSE comment lines (": ping\n\n") are ignored by MCP clients but prevent connection drops.
+	//
+	// アイドル期間中にSSE接続を維持するためのハートビートタイマー。
+	// 定期的なデータがないと、クライアント（例：VSCode拡張）がアイドルタイムアウトで接続を閉じることがある。
+	// SSEコメント行（": ping\n\n"）はMCPクライアントには無視されるが、接続の切断を防ぐ。
+	heartbeat := time.NewTicker(30 * time.Second)
+	defer heartbeat.Stop()
+
 	// Stream messages to the client until the context is cancelled
 	// コンテキストがキャンセルされるまでクライアントにメッセージをストリーミング
 	for {
@@ -455,6 +465,13 @@ func (s *Server) handleSSE(w http.ResponseWriter, r *http.Request) {
 			// Format: "event: message\ndata: <json>\n\n"
 			// フォーマット: "event: message\ndata: <json>\n\n"
 			fmt.Fprintf(w, "event: message\ndata: %s\n\n", msg)
+			if f, ok := w.(http.Flusher); ok {
+				f.Flush()
+			}
+		case <-heartbeat.C:
+			// Send SSE comment as keep-alive ping
+			// SSEコメントをkeep-aliveのpingとして送信
+			fmt.Fprintf(w, ": ping\n\n")
 			if f, ok := w.(http.Flusher); ok {
 				f.Flush()
 			}

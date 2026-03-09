@@ -1398,6 +1398,123 @@ func TestToolRunHostTool_Functional(t *testing.T) {
 	}
 }
 
+// TestToolRunHostTool_LargeOutput tests that large tool output is saved to a file
+// and the AI receives a summary message with a preview instead of the full output.
+//
+// TestToolRunHostTool_LargeOutputは大きなツール出力がファイルに保存され、
+// AIには完全な出力の代わりにプレビュー付きのサマリーメッセージが返されることをテストします。
+func TestToolRunHostTool_LargeOutput(t *testing.T) {
+	policy := createTestPolicy()
+	mockClient := docker.NewMockClient(policy)
+	ctx := context.Background()
+
+	dir := t.TempDir()
+	toolsDir := dir + "/tools"
+	logDir := dir + "/tmp" // absolute path for LargeOutputDir avoids workspaceRoot dependency
+	os.MkdirAll(toolsDir, 0755)
+
+	// Script that generates output larger than the threshold (1024 bytes)
+	// 閾値（1024バイト）より大きな出力を生成するスクリプト
+	script := "#!/bin/bash\n# large.sh\n# Large output tool\nfor i in $(seq 1 100); do printf 'Line %d: %s\\n' \"$i\" \"$(printf '%0.s-' {1..50})\"; done\n"
+	os.WriteFile(toolsDir+"/large.sh", []byte(script), 0755)
+
+	htCfg := &configPkg.HostToolsConfig{
+		Enabled:           true,
+		Directories:       []string{"tools"},
+		AllowedExtensions: []string{".sh"},
+		Timeout:           30,
+		MaxOutputBytes:    1024, // Low threshold to trigger file saving in tests
+		LargeOutputDir:    logDir, // absolute path: workspaceRoot join is skipped
+	}
+	mgr := hosttools.NewManager(htCfg, dir)
+	server := NewServer(mockClient, 8080, WithHostToolsManager(mgr))
+
+	result, err := server.toolRunHostTool(ctx, map[string]any{"name": "large.sh"})
+	if err != nil {
+		t.Fatalf("toolRunHostTool returned error: %v", err)
+	}
+
+	resultMap := result.(map[string]any)
+	content := resultMap["content"].([]map[string]any)
+	text := content[0]["text"].(string)
+
+	// Response should contain the "Output was large" notice
+	// レスポンスに「Output was large」の通知が含まれること
+	if !strings.Contains(text, "Output was large") {
+		t.Errorf("expected large output notice, got: %s", text)
+	}
+
+	// Response should mention the saved file path
+	// レスポンスに保存されたファイルパスが含まれること
+	if !strings.Contains(text, "dkmcp-large-last.log") {
+		t.Errorf("expected log filename in response, got: %s", text)
+	}
+
+	// Response should contain a preview
+	// レスポンスにプレビューが含まれること
+	if !strings.Contains(text, "Preview") {
+		t.Errorf("expected preview in response, got: %s", text)
+	}
+
+	// The log file should actually exist
+	// ログファイルが実際に存在すること
+	logPath := logDir + "/dkmcp-large-last.log"
+	if _, statErr := os.Stat(logPath); os.IsNotExist(statErr) {
+		t.Errorf("expected log file to be created at %s", logPath)
+	}
+}
+
+// TestToolRunHostTool_TimeoutHint tests that a timeout error includes a hint
+// about where to change the timeout setting in dkmcp.yaml.
+//
+// TestToolRunHostTool_TimeoutHintはタイムアウトエラーに
+// dkmcp.yamlでのタイムアウト設定変更方法のヒントが含まれることをテストします。
+func TestToolRunHostTool_TimeoutHint(t *testing.T) {
+	policy := createTestPolicy()
+	mockClient := docker.NewMockClient(policy)
+	ctx := context.Background()
+
+	dir := t.TempDir()
+	toolsDir := dir + "/tools"
+	os.MkdirAll(toolsDir, 0755)
+
+	// Script that sleeps longer than the timeout
+	// タイムアウトより長くスリープするスクリプト
+	os.WriteFile(toolsDir+"/slow.sh", []byte("#!/bin/bash\n# slow.sh\n# Slow tool\nsleep 60\n"), 0755)
+
+	htCfg := &configPkg.HostToolsConfig{
+		Enabled:           true,
+		Directories:       []string{"tools"},
+		AllowedExtensions: []string{".sh"},
+		Timeout:           1, // 1 second so the test completes quickly
+	}
+	mgr := hosttools.NewManager(htCfg, dir)
+	server := NewServer(mockClient, 8080, WithHostToolsManager(mgr))
+
+	_, err := server.toolRunHostTool(ctx, map[string]any{"name": "slow.sh"})
+	if err == nil {
+		t.Fatal("expected timeout error")
+	}
+
+	// Error should mention the config key
+	// エラーにタイムアウト設定のキーが含まれること
+	if !strings.Contains(err.Error(), "host_access.host_tools.timeout") {
+		t.Errorf("expected config key hint in error, got: %v", err)
+	}
+
+	// Error should mention dkmcp.yaml
+	// エラーに dkmcp.yaml が含まれること
+	if !strings.Contains(err.Error(), "dkmcp.yaml") {
+		t.Errorf("expected dkmcp.yaml hint in error, got: %v", err)
+	}
+
+	// Error should include the current timeout value
+	// エラーに現在のタイムアウト値が含まれること
+	if !strings.Contains(err.Error(), "1s") {
+		t.Errorf("expected current timeout (1s) in error, got: %v", err)
+	}
+}
+
 // TestToolExecHostCommand_Functional tests the exec_host_command tool handler.
 // TestToolExecHostCommand_Functionalはexec_host_command MCPツールハンドラーをテストします。
 func TestToolExecHostCommand_Functional(t *testing.T) {

@@ -615,6 +615,26 @@ type HostToolsConfig struct {
 	// Timeout is the maximum execution time in seconds for tool execution.
 	// Timeoutはツール実行の最大実行時間（秒）です。
 	Timeout int `yaml:"timeout"`
+
+	// MaxOutputBytes is the maximum output size in bytes before saving to a file.
+	// When output exceeds this limit, it is saved to LargeOutputDir and the AI
+	// receives a message with the file path and a preview instead of the full output.
+	// Set to 0 to disable (always return output directly). Default: 102400 (100KB).
+	//
+	// MaxOutputBytesは出力をファイルに保存する前の最大出力サイズ（バイト）です。
+	// 出力がこの上限を超えると、LargeOutputDirに保存され、AIには
+	// ファイルパスとプレビューを含むメッセージが返されます。
+	// 0に設定すると無効（常に出力を直接返す）。デフォルト: 102400 (100KB)。
+	MaxOutputBytes int64 `yaml:"max_output_bytes"`
+
+	// LargeOutputDir is the directory (relative to workspace_root) where large
+	// tool outputs are saved when they exceed MaxOutputBytes.
+	// Default: ".sandbox/tmp".
+	//
+	// LargeOutputDirはMaxOutputBytesを超えた大きなツール出力が保存される
+	// ディレクトリです（workspace_rootからの相対パス）。
+	// デフォルト: ".sandbox/tmp"。
+	LargeOutputDir string `yaml:"large_output_dir"`
 }
 
 // IsSecureMode returns true if the secure mode is configured (ApprovedDir is set).
@@ -799,6 +819,8 @@ func NewDefaultConfig() *Config {
 				Common:            true,
 				AllowedExtensions: []string{".sh", ".go", ".py"},
 				Timeout:           60,
+				MaxOutputBytes:    102400,
+				LargeOutputDir:    ".sandbox/tmp",
 			},
 			HostCommands: HostCommandsConfig{
 				Enabled:    false,
@@ -887,6 +909,9 @@ func (c *Config) Validate() error {
 	if c.HostAccess.HostTools.Enabled {
 		if c.HostAccess.HostTools.Timeout <= 0 {
 			return fmt.Errorf("invalid host_tools timeout: %d (must be > 0)", c.HostAccess.HostTools.Timeout)
+		}
+		if c.HostAccess.HostTools.MaxOutputBytes < 0 {
+			return fmt.Errorf("invalid host_tools max_output_bytes: %d (must be >= 0)", c.HostAccess.HostTools.MaxOutputBytes)
 		}
 	}
 

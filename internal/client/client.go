@@ -42,6 +42,7 @@ var clientVersion string
 // - errors: Channel for receiving SSE connection errors
 // - ctx/cancel: Context for managing client lifecycle and cancellation
 // - mu: Mutex for thread-safe access to shared state
+// - timeout: Timeout duration for HTTP requests and tool call responses
 //
 // ClientはDockMCPサーバー用のHTTPクライアントで、SSE接続と
 // MCPサーバーとのJSON-RPC通信を管理します。
@@ -56,6 +57,7 @@ var clientVersion string
 // - errors: SSE接続エラーを受信するチャネル
 // - ctx/cancel: クライアントのライフサイクルとキャンセル管理用コンテキスト
 // - mu: 共有状態へのスレッドセーフなアクセス用ミューテックス
+// - timeout: HTTPリクエストとツール呼び出しレスポンスのタイムアウト時間
 type Client struct {
 	baseURL       string
 	httpClient    *http.Client
@@ -67,7 +69,8 @@ type Client struct {
 	ctx           context.Context
 	cancel        context.CancelFunc
 	mu            sync.Mutex
-	clientSuffix  string // Suffix appended to client name / クライアント名に追加されるサフィックス
+	clientSuffix  string        // Suffix appended to client name / クライアント名に追加されるサフィックス
+	timeout       time.Duration // Timeout for requests and tool call responses / リクエストとツール呼び出しのタイムアウト
 }
 
 // NewClient creates a new DockMCP HTTP client configured to connect to the specified server.
@@ -93,12 +96,14 @@ func NewClient(baseURL string) *Client {
 	// Create a cancellable context for managing the client's lifecycle
 	// クライアントのライフサイクル管理用のキャンセル可能なコンテキストを作成
 	ctx, cancel := context.WithCancel(context.Background())
+	const defaultTimeout = 30 * time.Second
 	return &Client{
 		baseURL: baseURL,
-		// Standard HTTP client with 30-second timeout for regular API calls
-		// 通常のAPIコール用の30秒タイムアウト付き標準HTTPクライアント
+		timeout: defaultTimeout,
+		// Standard HTTP client with default timeout for regular API calls
+		// 通常のAPIコール用のデフォルトタイムアウト付き標準HTTPクライアント
 		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout: defaultTimeout,
 		},
 		// SSE client with no timeout to maintain long-lived connections
 		// 長期接続を維持するためのタイムアウトなしSSEクライアント
@@ -114,6 +119,20 @@ func NewClient(baseURL string) *Client {
 		ctx:    ctx,
 		cancel: cancel,
 	}
+}
+
+// SetTimeout sets the timeout for HTTP requests and tool call response waiting.
+// This affects both the HTTP client timeout and the SSE response wait timeout.
+// Must be called before Connect() to take effect for the HTTP client.
+// The default timeout is 30 seconds.
+//
+// SetTimeoutはHTTPリクエストとツール呼び出しレスポンス待機のタイムアウトを設定します。
+// HTTPクライアントのタイムアウトとSSEレスポンス待機タイムアウトの両方に影響します。
+// HTTPクライアントに反映させるにはConnect()の前に呼び出す必要があります。
+// デフォルトのタイムアウトは30秒です。
+func (c *Client) SetTimeout(timeout time.Duration) {
+	c.timeout = timeout
+	c.httpClient.Timeout = timeout
 }
 
 // SetClientSuffix sets a suffix that will be appended to the client name.
@@ -351,7 +370,7 @@ func (c *Client) initialize() error {
 
 	case err := <-c.errors:
 		return fmt.Errorf("SSE connection error during initialize: %w", err)
-	case <-time.After(30 * time.Second):
+	case <-time.After(c.timeout):
 		return fmt.Errorf("timeout waiting for initialize response")
 	case <-c.ctx.Done():
 		return fmt.Errorf("client closed during initialize")
@@ -712,7 +731,7 @@ func (c *Client) CallTool(name string, arguments map[string]interface{}) (*ToolR
 		// SSE接続エラーが発生
 		return nil, fmt.Errorf("SSE connection error: %w", err)
 
-	case <-time.After(30 * time.Second):
+	case <-time.After(c.timeout):
 		// Response timeout
 		// レスポンスタイムアウト
 		return nil, fmt.Errorf("timeout waiting for response")

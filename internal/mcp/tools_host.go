@@ -11,6 +11,9 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/YujiSuzuki/dkmcp/internal/hosttools"
 )
@@ -133,6 +136,14 @@ func (s *Server) toolRunHostTool(ctx context.Context, args map[string]any) (any,
 	slog.Info("Running host tool", "name", name, "args", toolArgs)
 	result, err := s.hostToolsManager.RunTool(name, toolArgs)
 	if err != nil {
+		if strings.Contains(err.Error(), "execution timed out") {
+			cfg := s.hostToolsManager.Config()
+			timeoutSec := 60
+			if cfg != nil {
+				timeoutSec = cfg.Timeout
+			}
+			return nil, fmt.Errorf("%w\n\nTo increase the timeout, update host_access.host_tools.timeout in dkmcp.yaml (current: %ds)", err, timeoutSec)
+		}
 		return nil, err
 	}
 
@@ -142,8 +153,89 @@ func (s *Server) toolRunHostTool(ctx context.Context, args map[string]any) (any,
 	output = s.docker.GetPolicy().MaskExec(output)
 	output = s.docker.GetPolicy().MaskHostPaths(output)
 
+	// Check if output exceeds the large output threshold
+	// 出力が大きな出力閾値を超えるかチェック
+	cfg := s.hostToolsManager.Config()
+	if cfg != nil && cfg.MaxOutputBytes > 0 && int64(len(output)) > cfg.MaxOutputBytes {
+		content, saveErr := s.saveLargeToolOutput(name, output, result.ExitCode, cfg.LargeOutputDir)
+		if saveErr != nil {
+			slog.Warn("Failed to save large tool output to file, returning full output",
+				"name", name, "error", saveErr)
+			// Fall through to normal response with full (untruncated) output
+			// ファイル保存失敗時はそのまま返す（切り詰めなし）
+		} else {
+			return textResponse(content), nil
+		}
+	}
+
 	content := fmt.Sprintf("Tool: %s\nExit Code: %d\n\nOutput:\n%s", name, result.ExitCode, output)
 	return textResponse(content), nil
+}
+
+// saveLargeToolOutput saves large tool output to a file and returns a summary message.
+// The file is saved to <workspaceRoot>/<largeOutputDir>/dkmcp-<toolname>-last.log.
+//
+// saveLargeToolOutputは大きなツール出力をファイルに保存し、サマリーメッセージを返します。
+// ファイルは <workspaceRoot>/<largeOutputDir>/dkmcp-<toolname>-last.log に保存されます。
+func (s *Server) saveLargeToolOutput(name, output string, exitCode int, largeOutputDir string) (string, error) {
+	// Derive a safe filename from the tool name (strip extension)
+	// ツール名からファイル名を生成（拡張子を除去）
+	base := name
+	if idx := strings.LastIndex(base, "."); idx >= 0 {
+		base = base[:idx]
+	}
+	filename := fmt.Sprintf("dkmcp-%s-last.log", base)
+
+	// Build the output directory path
+	// 出力ディレクトリパスを構築
+	dir := largeOutputDir
+	if !filepath.IsAbs(dir) {
+		dir = filepath.Join(s.workspaceRoot, dir)
+	}
+
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create large output directory %s: %w", dir, err)
+	}
+
+	logPath := filepath.Join(dir, filename)
+	if err := os.WriteFile(logPath, []byte(output), 0644); err != nil {
+		return "", fmt.Errorf("failed to write large output to %s: %w", logPath, err)
+	}
+
+	slog.Info("Large tool output saved to file", "name", name, "path", logPath, "bytes", len(output))
+
+	// Build a preview: head 20 lines + tail 20 lines
+	// プレビューを構築: 先頭20行 + 末尾20行
+	lines := strings.Split(output, "\n")
+	const previewLines = 20
+	var preview strings.Builder
+	if len(lines) <= previewLines*2 {
+		preview.WriteString(output)
+	} else {
+		for _, l := range lines[:previewLines] {
+			preview.WriteString(l)
+			preview.WriteByte('\n')
+		}
+		fmt.Fprintf(&preview, "\n... (%d lines omitted) ...\n\n", len(lines)-previewLines*2)
+		for _, l := range lines[len(lines)-previewLines:] {
+			preview.WriteString(l)
+			preview.WriteByte('\n')
+		}
+	}
+
+	// Mask host paths in the log path shown to AI
+	// AIに表示するログパスのホストパスをマスク
+	maskedPath := s.docker.GetPolicy().MaskHostPaths(logPath)
+
+	content := fmt.Sprintf(
+		"Tool: %s\nExit Code: %d\n\n"+
+			"⚠️  Output was large (%d bytes) and has been saved to a file.\n"+
+			"File: %s\n"+
+			"Use the Read or Grep tool to inspect the full output.\n\n"+
+			"--- Preview (first/last %d lines) ---\n%s",
+		name, exitCode, len(output), maskedPath, previewLines, preview.String())
+
+	return content, nil
 }
 
 // GetHostCommandTools returns the MCP tool definitions for host command operations.

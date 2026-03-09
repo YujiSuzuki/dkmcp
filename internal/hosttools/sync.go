@@ -138,6 +138,7 @@ type SyncManager struct {
 	cfg           *config.HostToolsConfig
 	workspaceRoot string
 	reader        io.Reader // for testing: override stdin
+	writer        io.Writer // for testing: override stdout
 }
 
 // NewSyncManager creates a new SyncManager.
@@ -147,6 +148,7 @@ func NewSyncManager(cfg *config.HostToolsConfig, workspaceRoot string) *SyncMana
 		cfg:           cfg,
 		workspaceRoot: workspaceRoot,
 		reader:        os.Stdin,
+		writer:        os.Stdout,
 	}
 }
 
@@ -154,6 +156,12 @@ func NewSyncManager(cfg *config.HostToolsConfig, workspaceRoot string) *SyncMana
 // SetReaderは入力リーダーを上書きします（テスト用）。
 func (s *SyncManager) SetReader(r io.Reader) {
 	s.reader = r
+}
+
+// SetWriter overrides the output writer (for testing).
+// SetWriterは出力ライターを上書きします（テスト用）。
+func (s *SyncManager) SetWriter(w io.Writer) {
+	s.writer = w
 }
 
 // DetectChanges compares staging directories with the approved directory
@@ -247,13 +255,13 @@ func (s *SyncManager) RunInteractiveSync() (int, error) {
 	}
 
 	if !hasChanges {
-		fmt.Println("All tools are up to date. No sync needed.")
+		fmt.Fprintln(s.writer, "All tools are up to date. No sync needed.")
 		return 0, nil
 	}
 
-	fmt.Println()
-	fmt.Println("🔍 Checking host tools...")
-	fmt.Println()
+	fmt.Fprintln(s.writer)
+	fmt.Fprintln(s.writer, "🔍 Checking host tools...")
+	fmt.Fprintln(s.writer)
 
 	scanner := bufio.NewScanner(s.reader)
 	synced := 0
@@ -261,64 +269,64 @@ func (s *SyncManager) RunInteractiveSync() (int, error) {
 	for _, item := range items {
 		switch item.Status {
 		case SyncUnchanged:
-			fmt.Printf("  Unchanged: %s (skipped)\n", item.Name)
+			fmt.Fprintf(s.writer, "  Unchanged: %s (skipped)\n", item.Name)
 
 		case SyncNew:
-			fmt.Printf("  New tool found:\n")
-			fmt.Printf("    %s", item.Name)
+			fmt.Fprintf(s.writer, "  New tool found:\n")
+			fmt.Fprintf(s.writer, "    %s", item.Name)
 			if item.Description != "" {
-				fmt.Printf(" - %q", item.Description)
+				fmt.Fprintf(s.writer, " - %q", item.Description)
 			}
-			fmt.Println()
-			fmt.Printf("    Source: %s\n", item.StagingPath)
-			fmt.Printf("    → Copy to %s? [y/N] ", item.ApprovedPath)
+			fmt.Fprintln(s.writer)
+			fmt.Fprintf(s.writer, "    Source: %s\n", item.StagingPath)
+			fmt.Fprintf(s.writer, "    → Copy to %s? [y/N] ", item.ApprovedPath)
 
 			if scanner.Scan() {
 				answer := strings.TrimSpace(strings.ToLower(scanner.Text()))
 				if answer == "y" || answer == "yes" {
 					if err := copyFile(item.StagingPath, item.ApprovedPath); err != nil {
-						fmt.Printf("    ❌ Error: %v\n", err)
+						fmt.Fprintf(s.writer, "    ❌ Error: %v\n", err)
 					} else {
-						fmt.Printf("    ✅ Copied\n")
+						fmt.Fprintf(s.writer, "    ✅ Copied\n")
 						synced++
 					}
 				} else {
-					fmt.Printf("    ⏭️  Skipped\n")
+					fmt.Fprintf(s.writer, "    ⏭️  Skipped\n")
 				}
 			}
 
 		case SyncUpdated:
-			fmt.Printf("  Updated tool found:\n")
-			fmt.Printf("    %s", item.Name)
+			fmt.Fprintf(s.writer, "  Updated tool found:\n")
+			fmt.Fprintf(s.writer, "    %s", item.Name)
 			if item.Description != "" {
-				fmt.Printf(" - %q", item.Description)
+				fmt.Fprintf(s.writer, " - %q", item.Description)
 			}
-			fmt.Println()
-			fmt.Printf("    Source: %s\n", item.StagingPath)
-			fmt.Printf("    → Update %s? [y/N/d(iff)] ", item.ApprovedPath)
+			fmt.Fprintln(s.writer)
+			fmt.Fprintf(s.writer, "    Source: %s\n", item.StagingPath)
+			fmt.Fprintf(s.writer, "    → Update %s? [y/N/d(iff)] ", item.ApprovedPath)
 
 			if scanner.Scan() {
 				answer := strings.TrimSpace(strings.ToLower(scanner.Text()))
 				if answer == "d" || answer == "diff" {
-					showDiff(item.StagingPath, item.ApprovedPath)
-					fmt.Printf("    → Update? [y/N] ")
+					s.showDiff(item.StagingPath, item.ApprovedPath)
+					fmt.Fprintf(s.writer, "    → Update? [y/N] ")
 					if scanner.Scan() {
 						answer = strings.TrimSpace(strings.ToLower(scanner.Text()))
 					}
 				}
 				if answer == "y" || answer == "yes" {
 					if err := copyFile(item.StagingPath, item.ApprovedPath); err != nil {
-						fmt.Printf("    ❌ Error: %v\n", err)
+						fmt.Fprintf(s.writer, "    ❌ Error: %v\n", err)
 					} else {
-						fmt.Printf("    ✅ Updated\n")
+						fmt.Fprintf(s.writer, "    ✅ Updated\n")
 						synced++
 					}
 				} else {
-					fmt.Printf("    ⏭️  Skipped\n")
+					fmt.Fprintf(s.writer, "    ⏭️  Skipped\n")
 				}
 			}
 		}
-		fmt.Println()
+		fmt.Fprintln(s.writer)
 	}
 
 	return synced, nil
@@ -425,23 +433,23 @@ func writeProjectMeta(approvedDir, workspacePath string) error {
 
 // showDiff displays a simple line-by-line diff between two files.
 // showDiffは2つのファイル間の簡易行単位diffを表示します。
-func showDiff(stagingPath, approvedPath string) {
+func (s *SyncManager) showDiff(stagingPath, approvedPath string) {
 	stagingData, err := os.ReadFile(stagingPath)
 	if err != nil {
-		fmt.Printf("    Error reading staging file: %v\n", err)
+		fmt.Fprintf(s.writer, "    Error reading staging file: %v\n", err)
 		return
 	}
 	approvedData, err := os.ReadFile(approvedPath)
 	if err != nil {
-		fmt.Printf("    Error reading approved file: %v\n", err)
+		fmt.Fprintf(s.writer, "    Error reading approved file: %v\n", err)
 		return
 	}
 
 	stagingLines := strings.Split(string(stagingData), "\n")
 	approvedLines := strings.Split(string(approvedData), "\n")
 
-	fmt.Println("    --- approved (current)")
-	fmt.Println("    +++ staging (new)")
+	fmt.Fprintln(s.writer, "    --- approved (current)")
+	fmt.Fprintln(s.writer, "    +++ staging (new)")
 
 	maxLen := len(stagingLines)
 	if len(approvedLines) > maxLen {
@@ -458,10 +466,10 @@ func showDiff(stagingPath, approvedPath string) {
 		}
 		if sLine != aLine {
 			if i < len(approvedLines) {
-				fmt.Printf("    - %s\n", aLine)
+				fmt.Fprintf(s.writer, "    - %s\n", aLine)
 			}
 			if i < len(stagingLines) {
-				fmt.Printf("    + %s\n", sLine)
+				fmt.Fprintf(s.writer, "    + %s\n", sLine)
 			}
 		}
 	}

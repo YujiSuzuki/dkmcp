@@ -288,7 +288,24 @@ dkmcp client list --url http://localhost:8080
 # Or use an environment variable
 export DOCKMCP_SERVER_URL=http://host.docker.internal:8080
 dkmcp client list
+
+# Set a custom timeout (seconds)
+dkmcp client --timeout 120 exec securenote-api "npm run build"
+
+# Or use an environment variable
+export DOCKMCP_TIMEOUT=120
+dkmcp client exec securenote-api "npm run build"
 ```
+
+**Client command flags:**
+
+| Flag | Env var | Default | Description |
+|------|---------|---------|-------------|
+| `--url` | `DOCKMCP_SERVER_URL` | `http://host.docker.internal:8080` | DockMCP server URL |
+| `--client-suffix` / `-s` | `DOCKMCP_CLIENT_SUFFIX` | (none) | Suffix appended to client name |
+| `--timeout` | `DOCKMCP_TIMEOUT` | `30` | Timeout in seconds for HTTP requests and tool call responses |
+
+> **About timeout:** `--timeout` applies to both sending HTTP requests and waiting for responses via SSE. Increase it for long-running commands like `npm run build`. The SSE connection itself (session keep-alive) is not affected by this timeout.
 
 **Which to use:**
 - **Host OS commands**: When you have direct Docker socket access

@@ -1,6 +1,7 @@
 package hosttools
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -312,8 +313,8 @@ func TestSyncManager_RunInteractiveSync_ApproveAll(t *testing.T) {
 	}
 
 	syncMgr := NewSyncManager(cfg, workspaceDir)
-	// Simulate user typing "y"
 	syncMgr.SetReader(strings.NewReader("y\n"))
+	syncMgr.SetWriter(io.Discard)
 
 	synced, err := syncMgr.RunInteractiveSync()
 	if err != nil {
@@ -354,8 +355,8 @@ func TestSyncManager_RunInteractiveSync_DenyAll(t *testing.T) {
 	}
 
 	syncMgr := NewSyncManager(cfg, workspaceDir)
-	// Simulate user typing "n"
 	syncMgr.SetReader(strings.NewReader("n\n"))
+	syncMgr.SetWriter(io.Discard)
 
 	synced, err := syncMgr.RunInteractiveSync()
 	if err != nil {
@@ -402,6 +403,7 @@ func TestSyncManager_RunInteractiveSync_NoChanges(t *testing.T) {
 	}
 
 	syncMgr := NewSyncManager(cfg, workspaceDir)
+	syncMgr.SetWriter(io.Discard)
 
 	synced, err := syncMgr.RunInteractiveSync()
 	if err != nil {

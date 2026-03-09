@@ -551,6 +551,14 @@ func TestHostAccessConfig_Defaults(t *testing.T) {
 	if cfg.HostAccess.HostTools.Timeout != 60 {
 		t.Errorf("HostAccess.HostTools.Timeout = %d, want 60", cfg.HostAccess.HostTools.Timeout)
 	}
+	// Default MaxOutputBytes (100KB)
+	if cfg.HostAccess.HostTools.MaxOutputBytes != 102400 {
+		t.Errorf("HostAccess.HostTools.MaxOutputBytes = %d, want 102400", cfg.HostAccess.HostTools.MaxOutputBytes)
+	}
+	// Default LargeOutputDir
+	if cfg.HostAccess.HostTools.LargeOutputDir != ".sandbox/tmp" {
+		t.Errorf("HostAccess.HostTools.LargeOutputDir = %q, want \".sandbox/tmp\"", cfg.HostAccess.HostTools.LargeOutputDir)
+	}
 
 	// HostCommands should be disabled by default
 	// HostCommandsはデフォルトで無効であるべき
@@ -600,6 +608,8 @@ host_access:
       - ".sh"
       - ".go"
     timeout: 120
+    max_output_bytes: 204800
+    large_output_dir: ".sandbox/logs"
 
   host_commands:
     enabled: true
@@ -642,6 +652,12 @@ host_access:
 	}
 	if cfg.HostAccess.HostTools.Timeout != 120 {
 		t.Errorf("HostAccess.HostTools.Timeout = %d, want 120", cfg.HostAccess.HostTools.Timeout)
+	}
+	if cfg.HostAccess.HostTools.MaxOutputBytes != 204800 {
+		t.Errorf("HostAccess.HostTools.MaxOutputBytes = %d, want 204800", cfg.HostAccess.HostTools.MaxOutputBytes)
+	}
+	if cfg.HostAccess.HostTools.LargeOutputDir != ".sandbox/logs" {
+		t.Errorf("HostAccess.HostTools.LargeOutputDir = %q, want \".sandbox/logs\"", cfg.HostAccess.HostTools.LargeOutputDir)
 	}
 	// Legacy mode: no approved_dir set
 	if cfg.HostAccess.HostTools.IsSecureMode() {
@@ -810,6 +826,32 @@ func TestHostAccessConfig_Validation(t *testing.T) {
 			modify: func(cfg *Config) {
 				cfg.HostAccess.HostCommands.Enabled = false
 				cfg.HostAccess.WorkspaceRoot = "" // empty but ignored when disabled
+			},
+			wantErr: false,
+		},
+		{
+			name: "negative max_output_bytes rejected",
+			modify: func(cfg *Config) {
+				cfg.HostAccess.HostTools.Enabled = true
+				cfg.HostAccess.HostTools.Timeout = 30
+				cfg.HostAccess.HostTools.MaxOutputBytes = -1
+			},
+			wantErr: true,
+		},
+		{
+			name: "zero max_output_bytes is valid (disabled)",
+			modify: func(cfg *Config) {
+				cfg.HostAccess.HostTools.Enabled = true
+				cfg.HostAccess.HostTools.Timeout = 30
+				cfg.HostAccess.HostTools.MaxOutputBytes = 0
+			},
+			wantErr: false,
+		},
+		{
+			name: "disabled host_tools skips max_output_bytes check",
+			modify: func(cfg *Config) {
+				cfg.HostAccess.HostTools.Enabled = false
+				cfg.HostAccess.HostTools.MaxOutputBytes = -1 // invalid but ignored when disabled
 			},
 			wantErr: false,
 		},
