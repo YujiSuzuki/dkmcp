@@ -52,6 +52,7 @@ DockMCP を使用する AI Sandbox テンプレートについては [ai-sandbox
 go install github.com/YujiSuzuki/dkmcp@latest
 ```
 
+<!-- バイナリリリースは近日公開予定
 **macOS (Apple Silicon)**
 ```bash
 curl -L https://github.com/YujiSuzuki/dkmcp/releases/latest/download/dkmcp_darwin_arm64 -o dkmcp
@@ -77,6 +78,7 @@ curl -L https://github.com/YujiSuzuki/dkmcp/releases/latest/download/dkmcp_linux
 chmod +x dkmcp
 sudo mv dkmcp /usr/local/bin/
 ```
+-->
 
 **ソースからビルド**
 ```bash

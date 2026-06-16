@@ -52,6 +52,7 @@ Run on the host OS.
 go install github.com/YujiSuzuki/dkmcp@latest
 ```
 
+<!-- Binary releases coming soon
 **macOS (Apple Silicon)**
 ```bash
 curl -L https://github.com/YujiSuzuki/dkmcp/releases/latest/download/dkmcp_darwin_arm64 -o dkmcp
@@ -77,6 +78,7 @@ curl -L https://github.com/YujiSuzuki/dkmcp/releases/latest/download/dkmcp_linux
 chmod +x dkmcp
 sudo mv dkmcp /usr/local/bin/
 ```
+-->
 
 **Build from Source**
 ```bash
