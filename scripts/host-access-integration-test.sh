@@ -12,8 +12,8 @@
 #   ./scripts/host-access-integration-test.sh [OPTIONS]
 #
 # Options / オプション:
-#   --url URL       DockMCP server URL (default: http://localhost:8080)
-#                   DockMCPサーバーURL（デフォルト: http://localhost:8080）
+#   --url URL       DockMCP server URL (default: http://localhost:18080)
+#                   DockMCPサーバーURL（デフォルト: http://localhost:18080）
 #   --skip-build    Skip building dkmcp binary
 #                   dkmcpバイナリのビルドをスキップ
 #   --help          Show this help message
@@ -38,7 +38,7 @@ NC='\033[0m' # No Color / 色なし
 
 # Default values
 # デフォルト値
-SERVER_URL="${DOCKMCP_SERVER_URL:-http://localhost:8080}"
+SERVER_URL="${DOCKMCP_SERVER_URL:-http://localhost:18080}"
 SKIP_BUILD=false
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"

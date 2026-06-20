@@ -6,8 +6,8 @@
 #   ./scripts/integration-test.sh [OPTIONS]
 #
 # Options / オプション:
-#   --url URL     DockMCP server URL (default: http://host.docker.internal:8080)
-#                 DockMCPサーバーURL（デフォルト: http://host.docker.internal:8080）
+#   --url URL     DockMCP server URL (default: http://host.docker.internal:18080)
+#                 DockMCPサーバーURL（デフォルト: http://host.docker.internal:18080）
 #   --container   Container name for tests (default: securenote-api)
 #                 テスト用コンテナ名（デフォルト: securenote-api）
 #   --skip-build  Skip building dkmcp binary
@@ -28,7 +28,7 @@ NC='\033[0m' # No Color / 色なし
 
 # Default values
 # デフォルト値
-SERVER_URL="${DOCKMCP_SERVER_URL:-http://host.docker.internal:8080}"
+SERVER_URL="${DOCKMCP_SERVER_URL:-http://host.docker.internal:18080}"
 CONTAINER="securenote-api"
 SKIP_BUILD=false
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

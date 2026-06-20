@@ -57,10 +57,10 @@ func TestClientCommand(t *testing.T) {
 	}
 
 	// Test default URL flag has a value.
-	// The actual default is "http://host.docker.internal:8080".
+	// The actual default is "http://host.docker.internal:18080".
 	//
 	// デフォルトのURLフラグが値を持っていることをテストします。
-	// 実際のデフォルトは"http://host.docker.internal:8080"です。
+	// 実際のデフォルトは"http://host.docker.internal:18080"です。
 	if serverURL == "" {
 		t.Error("serverURL should have a default value")
 	}
@@ -81,7 +81,7 @@ func TestClientURLFlag(t *testing.T) {
 
 	// Verify the default value is the expected DockMCP server URL.
 	// デフォルト値が期待されるDockMCPサーバーURLであることを確認します。
-	expectedDefault := "http://host.docker.internal:8080"
+	expectedDefault := "http://host.docker.internal:18080"
 	if flag.DefValue != expectedDefault {
 		t.Errorf("Expected url flag default to be '%s', got %s", expectedDefault, flag.DefValue)
 	}
@@ -407,7 +407,7 @@ func TestClientSuffixEnvVar(t *testing.T) {
 // DOCKMCP_SERVER_URL環境変数が、--urlフラグが明示的に設定されていない場合に
 // フォールバックとして使用されることを確認します。
 func TestServerURLEnvVar(t *testing.T) {
-	const defaultURL = "http://host.docker.internal:8080"
+	const defaultURL = "http://host.docker.internal:18080"
 
 	tests := []struct {
 		name        string

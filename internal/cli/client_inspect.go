@@ -76,7 +76,7 @@ By default, shows a human-readable summary. Use --json for full JSON output.
 Examples:
   dkmcp client inspect securenote-api         # Show summary (default)
   dkmcp client inspect securenote-api --json  # Show full JSON
-  dkmcp client inspect --url http://host.docker.internal:8080 securenote-api`,
+  dkmcp client inspect --url http://host.docker.internal:18080 securenote-api`,
 	Args: cobra.ExactArgs(1),
 	RunE: runClientInspect,
 }

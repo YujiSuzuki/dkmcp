@@ -102,7 +102,7 @@ nano dkmcp.yaml
 Example configuration:
 ```yaml
 server:
-  port: 8080
+  port: 18080
   host: "127.0.0.1"
 
 security:
@@ -129,9 +129,9 @@ dkmcp serve --config dkmcp.yaml
 
 Output looks like:
 ```
-2026-01-22 12:55:17 INFO  Starting DockMCP server version=dev security_mode=moderate port=8080 log_level=info
+2026-01-22 12:55:17 INFO  Starting DockMCP server version=dev security_mode=moderate port=18080 log_level=info
 2026-01-22 12:55:17 INFO  Found accessible containers count=3
-2026-01-22 12:55:17 INFO  MCP server listening url=http://127.0.0.1:8080 health_check=http://127.0.0.1:8080/health sse_endpoint=http://127.0.0.1:8080/sse
+2026-01-22 12:55:17 INFO  MCP server listening url=http://127.0.0.1:18080 health_check=http://127.0.0.1:18080/health sse_endpoint=http://127.0.0.1:18080/sse
 2026-01-22 12:55:17 INFO  Press Ctrl+C to stop
 ```
 
@@ -183,7 +183,7 @@ Run multiple DockMCP servers simultaneously by using different ports and config 
 
 ```bash
 # Development instance (permissive)
-dkmcp serve --port 8080 --config dev.yaml
+dkmcp serve --port 18080 --config dev.yaml
 
 # Another project (strict)
 dkmcp serve --port 8081 --config strict.yaml
@@ -285,10 +285,10 @@ dkmcp client stats securenote-api
 dkmcp client exec securenote-api "npm test"
 
 # Custom server URL
-dkmcp client list --url http://localhost:8080
+dkmcp client list --url http://localhost:18080
 
 # Or use an environment variable
-export DOCKMCP_SERVER_URL=http://host.docker.internal:8080
+export DOCKMCP_SERVER_URL=http://host.docker.internal:18080
 dkmcp client list
 
 # Set a custom timeout (seconds)
@@ -303,7 +303,7 @@ dkmcp client exec securenote-api "npm run build"
 
 | Flag | Env var | Default | Description |
 |------|---------|---------|-------------|
-| `--url` | `DOCKMCP_SERVER_URL` | `http://host.docker.internal:8080` | DockMCP server URL |
+| `--url` | `DOCKMCP_SERVER_URL` | `http://host.docker.internal:18080` | DockMCP server URL |
 | `--client-suffix` / `-s` | `DOCKMCP_CLIENT_SUFFIX` | (none) | Suffix appended to client name |
 | `--timeout` | `DOCKMCP_TIMEOUT` | `30` | Timeout in seconds for HTTP requests and tool call responses |
 
@@ -615,7 +615,7 @@ These flags:
 dkmcp exec --dangerously securenote-api "tail -100 /var/log/app.log"
 
 # Client (AI Sandbox)
-dkmcp client exec --dangerously --url http://host.docker.internal:8080 securenote-api "tail -100 /var/log/app.log"
+dkmcp client exec --dangerously --url http://host.docker.internal:18080 securenote-api "tail -100 /var/log/app.log"
 ```
 
 #### Security Model
@@ -686,7 +686,7 @@ Note: Commands with '*' wildcard match any suffix. Dangerous commands require da
 │  │ - MCP server (HTTP/SSE)  │   │
 │  │ - Security policies      │   │
 │  └────────┬─────────────────┘   │
-│           │ :8080               │
+│           │ :18080               │
 │  ┌────────┴─────────────────┐   │
 │  │ Docker Engine            │   │
 │  │  ├─ AI Sandbox            │   │
@@ -861,14 +861,14 @@ Each level can be enabled independently, letting you choose the right balance of
 
 1. **Verify DockMCP is running on host:**
    ```bash
-   curl http://localhost:8080/health
+   curl http://localhost:18080/health
    # Should return 200 OK
    ```
 
 2. **Check MCP configuration inside AI Sandbox:**
    ```bash
    cat ~/.claude.json | jq '.mcpServers.dkmcp'
-   # Should show: "url": "http://host.docker.internal:8080/sse"
+   # Should show: "url": "http://host.docker.internal:18080/sse"
    ```
 
 3. **Try MCP reconnect:**
@@ -888,7 +888,7 @@ Restarting the DockMCP server drops SSE connections, so the AI assistant needs t
 
 - Is DockMCP running on host? → `ps aux | grep dkmcp`
 - Are you using `host.docker.internal` in the URL? (`localhost` won't work from AI Sandbox)
-- Is port 8080 blocked by a firewall? → `lsof -i :8080`
+- Is port 18080 blocked by a firewall? → `lsof -i :18080`
 
 ### "Container not in allowed list"
 

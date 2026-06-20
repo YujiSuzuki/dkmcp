@@ -6,7 +6,7 @@
 server:
   # Port for MCP server (HTTP/SSE)
   # MCPサーバーのポート番号（HTTP/SSE）
-  port: 8080
+  port: 18080
 
   # Host to bind to
   # バインドするホスト

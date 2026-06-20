@@ -27,7 +27,7 @@ through the DockMCP server.
 
 Examples:
   dkmcp client stats securenote-api
-  dkmcp client stats --url http://host.docker.internal:8080 securenote-api`,
+  dkmcp client stats --url http://host.docker.internal:18080 securenote-api`,
 	Args: cobra.ExactArgs(1),
 	RunE: runClientStats,
 }

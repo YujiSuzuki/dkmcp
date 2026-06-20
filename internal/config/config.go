@@ -59,8 +59,8 @@ type Config struct {
 // ServerConfigはサーバー関連の設定を保持します。
 // これらの設定はMCPサーバーが接続を待ち受ける方法を制御します。
 type ServerConfig struct {
-	// Port is the TCP port to listen on (default: 8080)
-	// Portは待ち受けるTCPポートです（デフォルト: 8080）
+	// Port is the TCP port to listen on (default: 18080)
+	// Portは待ち受けるTCPポートです（デフォルト: 18080）
 	Port int `yaml:"port"`
 
 	// Host is the network interface to bind to (default: "0.0.0.0" = all interfaces)
@@ -708,7 +708,7 @@ type HostCommandsDangerously struct {
 func NewDefaultConfig() *Config {
 	return &Config{
 		Server: ServerConfig{
-			Port: 8080,
+			Port: 18080,
 			Host: "0.0.0.0",
 		},
 		Security: SecurityConfig{

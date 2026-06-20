@@ -415,10 +415,10 @@ security:
 		t.Fatalf("Load() error = %v", err)
 	}
 
-	// Verify default port is applied (should be 8080)
-	// デフォルトポートが適用されていることを確認（8080のはず）
-	if cfg.Server.Port != 8080 {
-		t.Errorf("Server.Port = %d, want 8080", cfg.Server.Port)
+	// Verify default port is applied (should be 18080)
+	// デフォルトポートが適用されていることを確認（18080のはず）
+	if cfg.Server.Port != 18080 {
+		t.Errorf("Server.Port = %d, want 18080", cfg.Server.Port)
 	}
 
 	// Verify default host is applied (should be "0.0.0.0")

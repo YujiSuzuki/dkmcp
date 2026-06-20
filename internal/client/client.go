@@ -33,7 +33,7 @@ var clientVersion string
 // and JSON-RPC communication with the MCP server.
 //
 // The client maintains:
-// - baseURL: The base URL of the DockMCP server (e.g., "http://localhost:8080")
+// - baseURL: The base URL of the DockMCP server (e.g., "http://localhost:18080")
 // - httpClient: Standard HTTP client with timeout for regular requests
 // - sseHTTPClient: HTTP client without timeout for long-lived SSE connections
 // - sessionID: Unique identifier for the MCP session, obtained during SSE connection
@@ -48,7 +48,7 @@ var clientVersion string
 // MCPサーバーとのJSON-RPC通信を管理します。
 //
 // クライアントは以下を維持します：
-// - baseURL: DockMCPサーバーのベースURL（例："http://localhost:8080"）
+// - baseURL: DockMCPサーバーのベースURL（例："http://localhost:18080"）
 // - httpClient: 通常リクエスト用のタイムアウト付き標準HTTPクライアント
 // - sseHTTPClient: 長期接続のSSE用タイムアウトなしHTTPクライアント
 // - sessionID: SSE接続時に取得するMCPセッションの一意識別子
@@ -78,7 +78,7 @@ type Client struct {
 // and another without timeout for SSE connections that need to stay open indefinitely.
 //
 // Parameters:
-//   - baseURL: The base URL of the DockMCP server (e.g., "http://localhost:8080")
+//   - baseURL: The base URL of the DockMCP server (e.g., "http://localhost:18080")
 //
 // Returns:
 //   - A pointer to the newly created Client instance
@@ -88,7 +88,7 @@ type Client struct {
 // 無期限に開いたままにする必要があるSSE接続用のタイムアウトなしクライアントです。
 //
 // パラメータ：
-//   - baseURL: DockMCPサーバーのベースURL（例："http://localhost:8080"）
+//   - baseURL: DockMCPサーバーのベースURL（例："http://localhost:18080"）
 //
 // 戻り値：
 //   - 新しく作成されたClientインスタンスへのポインタ

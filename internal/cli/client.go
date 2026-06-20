@@ -16,11 +16,11 @@ import (
 
 var (
 	// serverURL holds the DockMCP server URL for client commands.
-	// Default is "http://host.docker.internal:8080" which works from within Docker containers.
+	// Default is "http://host.docker.internal:18080" which works from within Docker containers.
 	// Can be overridden via --url flag or DOCKMCP_SERVER_URL environment variable.
 	//
 	// serverURLはクライアントコマンド用のDockMCPサーバーURLを保持します。
-	// デフォルトは"http://host.docker.internal:8080"で、Dockerコンテナ内から動作します。
+	// デフォルトは"http://host.docker.internal:18080"で、Dockerコンテナ内から動作します。
 	// --urlフラグまたはDOCKMCP_SERVER_URL環境変数で上書きできます。
 	serverURL string
 
@@ -113,7 +113,7 @@ func init() {
 	// --urlフラグをclientコマンドとすべてのサブコマンドに追加します。
 	// PersistentFlagsはすべてのサブコマンドに継承されるため、list、logs、exec
 	// はすべてserverURL変数にアクセスできます。
-	clientCmd.PersistentFlags().StringVar(&serverURL, "url", "http://host.docker.internal:8080",
+	clientCmd.PersistentFlags().StringVar(&serverURL, "url", "http://host.docker.internal:18080",
 		"DockMCP server URL (can also be set via DOCKMCP_SERVER_URL environment variable)")
 
 	// Add --client-suffix flag to identify the caller.
