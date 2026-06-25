@@ -17,6 +17,9 @@ DockMCP を使用する AI Sandbox テンプレートについては [ai-sandbox
 - [サーバー起動](#サーバー起動)
 - [AIアシスタントとの接続](#aiアシスタントとの接続)
 - [CLIコマンド](#cliコマンド)
+  - [セットアップコマンド](#セットアップコマンド)
+  - [ホストOSコマンド（直接Dockerアクセス）](#ホストosコマンド直接dockerアクセス)
+  - [クライアントコマンド（HTTP API経由）](#クライアントコマンドhttp-api経由)
 - [セキュリティモード](#セキュリティモード)
 - [認証](#認証)
 - [設定リファレンス](#設定リファレンス)
@@ -26,6 +29,7 @@ DockMCP を使用する AI Sandbox テンプレートについては [ai-sandbox
   - [パーミッション](#パーミッション)
   - [デフォルトコマンド](#デフォルトコマンドexec_whitelist-)
   - [危険モード（exec_dangerously）](#危険モードexec_dangerously)
+  - [大きな出力の処理（host_tools）](#大きな出力の処理host_tools)
 - [アーキテクチャ](#アーキテクチャ)
 - [設計思想](#設計思想)
 - [提供されるMCPツール](#提供されるmcpツール)
@@ -91,11 +95,28 @@ make install  # ~/go/bin/ にインストール
 
 ### 設定ファイルの準備
 
-```bash
-# サンプル設定をコピー
-cp configs/dkmcp.example.yaml dkmcp.yaml
+`dkmcp init` を使って、ワークスペースに設定ファイルを生成できます：
 
-# コンテナ名に合わせて編集
+```bash
+dkmcp init --workspace /path/to/workspace
+```
+
+ワークスペース内の `.sandbox/config/dkmcp.yaml` が作成されます。ポート番号を同時に指定することもできます：
+
+```bash
+dkmcp init --workspace /path/to/workspace --port 18080
+```
+
+| フラグ | 説明 |
+|--------|------|
+| `--workspace` | 対象ワークスペースディレクトリ（必須） |
+| `--port` | 生成する設定ファイルのポート番号（デフォルト: 18080） |
+| `--force` | 既存の設定ファイルを上書き |
+
+または、サンプル設定を手動でコピーすることもできます：
+
+```bash
+cp configs/dkmcp.example.yaml dkmcp.yaml
 nano dkmcp.yaml
 ```
 
@@ -206,6 +227,19 @@ Claude: [DockMCPを使用] "npm testを実行中... 3つのテストが通過"
 ## CLIコマンド
 
 DockMCPは2種類のCLIコマンドを提供します:
+
+### セットアップコマンド
+
+```bash
+# ワークスペースに設定ファイルを生成
+dkmcp init --workspace /path/to/workspace
+
+# ポート番号を指定して生成
+dkmcp init --workspace /path/to/workspace --port 18080
+
+# 既存の設定ファイルを上書き
+dkmcp init --workspace /path/to/workspace --force
+```
 
 ### ホストOSコマンド（直接Dockerアクセス）
 
@@ -675,6 +709,33 @@ securenote-api      tail
 
 Note: Commands with '*' wildcard match any suffix. Dangerous commands require dangerously=true parameter.
 ```
+
+### 大きな出力の処理（host_tools）
+
+ホストツールの出力が `max_output_bytes` を超えると、DockMCP は全出力をファイルに保存し、AIにはパスとプレビューを返します。大きなビルドログやテストレポートが AI のコンテキストを圧迫するのを防ぎます。
+
+```yaml
+host_access:
+  host_tools:
+    max_output_bytes: 102400  # 100KB。0で無効化
+    large_output_dir: ".sandbox/tmp"  # workspace_root からの相対パス
+```
+
+AI が受け取るメッセージの例:
+
+```
+Tool: my-build.sh
+Exit Code: 0
+
+⚠️  Output was large (N bytes) and has been saved to a file.
+File: [HOST_PATH]/workspace/.sandbox/tmp/dkmcp-my-build-last.log
+Use the Read or Grep tool to inspect the full output.
+
+--- Preview (first/last 20 lines) ---
+...
+```
+
+> **注意:** ツールを実行するたびに同じファイル（`dkmcp-<toolname>-last.log`）が上書きされます。保持されるのは最新の出力のみです。
 
 ## アーキテクチャ
 

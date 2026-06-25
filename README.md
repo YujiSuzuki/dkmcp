@@ -17,6 +17,9 @@ For the AI Sandbox template that uses DockMCP, see [ai-sandbox](https://github.c
 - [Server Startup](#server-startup)
 - [Connecting AI Assistants](#connecting-ai-assistants)
 - [CLI Commands](#cli-commands)
+  - [Setup Commands](#setup-commands)
+  - [Host OS Commands (Direct Docker Access)](#host-os-commands-direct-docker-access)
+  - [Client Commands (Via HTTP API)](#client-commands-via-http-api)
 - [Security Modes](#security-modes)
 - [Authentication](#authentication)
 - [Configuration Reference](#configuration-reference)
@@ -26,6 +29,7 @@ For the AI Sandbox template that uses DockMCP, see [ai-sandbox](https://github.c
   - [Permissions](#permissions)
   - [Default Commands (exec_whitelist)](#default-commands-exec_whitelist-)
   - [Dangerous Mode (exec_dangerously)](#dangerous-mode-exec_dangerously)
+  - [Large Output Handling (host_tools)](#large-output-handling-host_tools)
 - [Architecture](#architecture)
 - [Design Philosophy](#design-philosophy)
 - [Provided MCP Tools](#provided-mcp-tools)
@@ -91,11 +95,28 @@ make install  # Installs to ~/go/bin/
 
 ### Preparing the Configuration File
 
-```bash
-# Copy the example configuration
-cp configs/dkmcp.example.yaml dkmcp.yaml
+Use `dkmcp init` to generate a config file inside your workspace:
 
-# Edit to match your container names
+```bash
+dkmcp init --workspace /path/to/workspace
+```
+
+This creates `.sandbox/config/dkmcp.yaml` in the workspace directory. To set a custom port at the same time:
+
+```bash
+dkmcp init --workspace /path/to/workspace --port 18080
+```
+
+| Flag | Description |
+|------|-------------|
+| `--workspace` | Target workspace directory (required) |
+| `--port` | Port number to set in the generated config (default: 18080) |
+| `--force` | Overwrite an existing config file |
+
+Alternatively, copy the example config manually:
+
+```bash
+cp configs/dkmcp.example.yaml dkmcp.yaml
 nano dkmcp.yaml
 ```
 
@@ -206,6 +227,19 @@ Claude: [Uses DockMCP] "Running npm test... 3 tests passed"
 ## CLI Commands
 
 DockMCP provides two types of CLI commands:
+
+### Setup Commands
+
+```bash
+# Generate a config file for a workspace
+dkmcp init --workspace /path/to/workspace
+
+# With a custom port
+dkmcp init --workspace /path/to/workspace --port 18080
+
+# Overwrite an existing config
+dkmcp init --workspace /path/to/workspace --force
+```
 
 ### Host OS Commands (Direct Docker Access)
 
@@ -675,6 +709,33 @@ securenote-api      tail
 
 Note: Commands with '*' wildcard match any suffix. Dangerous commands require dangerously=true parameter.
 ```
+
+### Large Output Handling (host_tools)
+
+When a host tool produces output exceeding `max_output_bytes`, DockMCP saves the full output to a file and returns a path and preview to the AI instead. This prevents large build logs or test reports from overflowing the AI's context window.
+
+```yaml
+host_access:
+  host_tools:
+    max_output_bytes: 102400  # 100 KB; set to 0 to disable
+    large_output_dir: ".sandbox/tmp"  # relative to workspace root
+```
+
+The AI receives a message like this:
+
+```
+Tool: my-build.sh
+Exit Code: 0
+
+⚠️  Output was large (N bytes) and has been saved to a file.
+File: [HOST_PATH]/workspace/.sandbox/tmp/dkmcp-my-build-last.log
+Use the Read or Grep tool to inspect the full output.
+
+--- Preview (first/last 20 lines) ---
+...
+```
+
+> **Note:** Each tool run overwrites the previous file (`dkmcp-<toolname>-last.log`), so only the most recent output is kept.
 
 ## Architecture
 
