@@ -1,5 +1,10 @@
 # DockMCP
 
+> [!WARNING]
+> **このリポジトリはメンテナンスを終了しました。**
+> DockMCP は **HostMCP** に名称変更されました。ホストツール実行・ホスト OS コマンド実行・コンテナライフサイクル管理など、コンテナアクセス以上の機能を持つことを名前に反映するためです。
+> [HostMCP](https://github.com/YujiSuzuki/hostmcp) をご利用ください。
+
 [English README is here](README.md)
 
 **AIコーディングアシスタントのための安全なDockerコンテナアクセス**

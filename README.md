@@ -1,5 +1,10 @@
 # DockMCP
 
+> [!WARNING]
+> **This repository is no longer maintained.**
+> DockMCP has been renamed to **HostMCP** to better reflect its expanded capabilities (host tools, host OS commands, container lifecycle — not just container access).
+> Please use [HostMCP](https://github.com/YujiSuzuki/hostmcp) instead.
+
 [日本語版はこちら](README.ja.md)
 
 **Secure Docker Container Access for AI Coding Assistants**
